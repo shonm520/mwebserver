@@ -182,8 +182,8 @@ static inline void parse_archive_init(parse_archive *ar) {
   ar->content_length = -1; // no Content-Length header
 }
 
-extern int parse_request_line(char *msg, int len, parse_archive *ar);
-extern int parse_header_line(char* msg, int len, parse_archive *ar);
-extern int parse_header_body_identity(char* msg, int len, parse_archive *ar);
+extern int parse_request_line(char *msg, int* len, parse_archive *ar);
+extern int parse_header_line(char* msg, int* len, parse_archive *ar);
+extern int parse_header_body_identity(char* msg, int* len, parse_archive *ar);
 
 

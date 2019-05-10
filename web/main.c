@@ -16,10 +16,10 @@ void onMessage(connection *conn)
 {
     
     int len = ring_buffer_readable_bytes(conn->ring_buffer_read);
-    printf("onMessage!!!! %d\n", len);
-    //char* msg = ring_buffer_readable_start(conn->ring_buffer_read);
+    printf("onMessage!!!! %d, fd is %d\n", len, conn->connfd);
+    char* msg = ring_buffer_readable_start(conn->ring_buffer_read);
 
-    //printf("msg is %s\n", msg);
+    printf("msg is %s\n", msg);
 
    
     //do_request(msg, len); 
@@ -29,7 +29,7 @@ void onMessage(connection *conn)
 
 void onConnection(connection* conn)
 {
-    printf("connected!!!!\n");
+    printf("connected!!!! fd is %d\n", conn->connfd);
 
     http_request_handle_init(conn);
 
@@ -48,6 +48,10 @@ int main(int argc, char* argv[])
 
 
     config_parse("", &server_config);
+
+    mime_dict_init();
+    header_handler_dict_init();
+    status_table_init();
 
 	server_manager *manager = server_manager_create(port, thread_num);
 	inet_address addr = addr_create("any", port);

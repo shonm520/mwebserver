@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "http_parser.h"
+#include "mevent/config.h"
 
 #define AGAIN (1)
 #define OK    (0)
@@ -31,19 +32,21 @@ static int parse_url(char *begin, char *end, parse_archive *ar);
  * OK: request line OK
  * AGAIN: parse to the end of buffer, but no complete request line
  * INVALID_REQUEST request not valid
+ * Method Request-URI HTTP-Version CRLF  
+ * eg:GET /form.html HTTP/1.1 (CRLF)
  */
-int parse_request_line(char* msg, int len, parse_archive *ar) {
-  char ch;
+int parse_request_line(char* msg, int* len, parse_archive *ar) {
+  //char ch;
+  assert(len);
   char *p;
-  for (p = ar->next_parse_pos; p < ; p++) {
-    ch = *p;
+  for (p = ar->next_parse_pos; p < (msg + *len); p++) {
+    char ch = *p;
     switch (ar->state) {
     case S_RL_BEGIN:
       switch (ch) {
       case 'a' ... 'z':
       case 'A' ... 'Z':
-        /* save current pos, which is METHOD beginning */
-        ar->method_begin = p;
+        ar->method_begin = p;     //记录method开始的地方
         ar->state = S_RL_METHOD;
         break;
       default:
@@ -55,7 +58,7 @@ int parse_request_line(char* msg, int len, parse_archive *ar) {
       case 'a' ... 'z':
       case 'A' ... 'Z':
         break;
-      case ' ': {
+      case ' ': {                //直到空格
         ar->method = parse_method(ar->method_begin, p);
         if (ar->method == HTTP_INVALID)
           return INVALID_REQUEST;
@@ -209,10 +212,11 @@ int parse_request_line(char* msg, int len, parse_archive *ar) {
       break;
     } // end switch(state)
   }   // end for
-  ar->next_parse_pos = len;
+  ar->next_parse_pos = *len;
   return AGAIN;
 done:;
   ar->next_parse_pos = p + 1;
+  *len = p + 1 - msg;
   ar->state = S_HD_BEGIN;
   return OK;
 }
@@ -226,12 +230,13 @@ done:;
  *  CRLF_LINE: `\r\n`, which means all headers have been parsed
  *
  */
-int parse_header_line(char* msg, int len, parse_archive *ar) {
+int parse_header_line(char* msg, int *len, parse_archive *ar) {
   char ch, *p;
   // NOTE: isCRLF_LINE must be an attribute of ar, cannot be a local variable.
   // see the change in fix commit.
   // bool isCRLF_LINE = true;
-  for (p = ar->next_parse_pos; p < len; p++) {
+  assert(len);
+  for (p = ar->next_parse_pos; p < (msg + *len); p++) {
     ch = *p;
     switch (ar->state) {
     case S_HD_BEGIN:
@@ -328,10 +333,11 @@ int parse_header_line(char* msg, int len, parse_archive *ar) {
       break;
     } // end switch state
   }   // end for
-  ar->next_parse_pos = len;
+  ar->next_parse_pos = *len;
   return AGAIN;
 done:;
   ar->next_parse_pos = p + 1;
+  *len = p + 1 - msg;
   ar->state = S_HD_BEGIN;
   ar->num_headers++;
 
@@ -375,6 +381,16 @@ static int parse_method(char *begin, char *end) {
   return HTTP_INVALID;
 }
 
+
+
+#define Copy_Str(item, src, len_) \
+  do { \
+    (item).str = (char*)mu_malloc(len_ + 1); \
+    (item).len = len_; \
+    memcpy((item).str, src, len_); \
+  } while(0)
+  
+
 /**
  * Some Samples:
  *
@@ -387,10 +403,14 @@ static int parse_method(char *begin, char *end) {
  */
 /* simple parse url */
 static int parse_url(char *begin, char *end, parse_archive *ar) {
-  ar->request_url_string.str = begin;
-  ar->request_url_string.len = end - begin;
-  assert(ar->request_url_string.len >= 0);
+  int len = end - begin;
+  assert(len >= 0);
+  // ar->request_url_string.str = (char*)mu_malloc(len + 1);
+  // ar->request_url_string.len = len;
+  // memcpy(ar->request_url_string.str, begin, len);
 
+  Copy_Str(ar->request_url_string, begin, len);
+  
   int curr_state = S_URL_BEGIN;
 
   char ch;
@@ -411,16 +431,20 @@ static int parse_url(char *begin, char *end, parse_archive *ar) {
     case S_URL_ABS_PATH:
       switch (ch) {
       case ' ':
-        ar->url.abs_path.str = begin;
-        ar->url.abs_path.len = p - begin;
+        //ar->url.abs_path.str = begin;
+        //ar->url.abs_path.len = p - begin;
 
-        ar->url.query_string.str = p;
-        ar->url.query_string.len = 0;
+        Copy_Str(ar->url.abs_path, begin, p - begin);
+        Copy_Str(ar->url.query_string, p, 0);
+
+        //ar->url.query_string.str = p;
+        //ar->url.query_string.len = 0;
         curr_state = S_URL_END;
         break;
       case '?':
-        ar->url.abs_path.str = begin;
-        ar->url.abs_path.len = p - begin;
+        //ar->url.abs_path.str = begin;
+        //ar->url.abs_path.len = p - begin;
+        Copy_Str(ar->url.abs_path, begin, p - begin);
         begin = p + 1;
         curr_state = S_URL_QUERY;
         break;
@@ -432,8 +456,9 @@ static int parse_url(char *begin, char *end, parse_archive *ar) {
     case S_URL_QUERY:
       switch (ch) {
       case ' ':
-        ar->url.query_string.str = begin;
-        ar->url.query_string.len = p - begin;
+        //ar->url.query_string.str = begin;
+        //ar->url.query_string.len = p - begin;
+        Copy_Str(ar->url.query_string, begin, p - begin);
         curr_state = S_URL_END;
       default:
         break;
@@ -451,27 +476,28 @@ parse_extension:;
 
   for (p = abs_path_end; p != ar->url.abs_path.str; p--) {
     if (*p == '.') {
-      ar->url.mime_extension.str = p + 1;
-      ar->url.mime_extension.len = abs_path_end - p - 1;
+      //ar->url.mime_extension.str = p + 1;
+      //ar->url.mime_extension.len = abs_path_end - p - 1;
+      //Copy_Str(ar->url.mime_extension, p + 1, abs_path_end - p - 1);
       break;
-    } else if (*p == '/')
+    }  else if (*p == '/')
       break;
   }
 
   return OK;
 }
 
-int parse_header_body_identity(char* msg, int len, parse_archive *ar) {
+int parse_header_body_identity(char* msg, int *len, parse_archive *ar) {
   if (ar->content_length <= 0)
     return OK;
   // not that complicated, using `next_parse_pos` to indicate where to parse
-  size_t received = len;
+  size_t received = *len;
   ar->body_received += received;
 #ifndef NDEBUG
   printf("%s %d\n", __FUNCTION__, __LINE__);
   printf("%s %lu\n", ar->next_parse_pos, received);
 #endif
-  ar->next_parse_pos = len;
+  ar->next_parse_pos = msg + *len;
 
   if (ar->body_received >= ar->content_length) { // full data recv
     return OK;

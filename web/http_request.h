@@ -22,6 +22,6 @@ int http_request(request*);
 void http_request_handle_init(connection* conn);
 
 int request_reset(request *r);
-int request_handle(connection *c);
+//int request_handle(connection *c);
 
-int response_handle(connection *c);
+int response_handle(request *r);

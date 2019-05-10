@@ -71,7 +71,7 @@ static int read_buffer1(int fd, connection* conn)       //使用了readv但是�
             return -1;
         }
         else  {
-            debug_sys("read n < 0, file: %s, line: %d", __FILE__, __LINE__);
+            debug_msg("read n < 0, fd : %d, file: %s, line: %d", conn->connfd, __FILE__, __LINE__);
             return -1;
         }
     }
@@ -141,7 +141,7 @@ static int read_buffer3(int fd, connection* conn)         //另一种读数据�
             }
             else  {
                 ret = -1;
-                debug_sys("read n < 0, file: %s, line: %d", __FILE__, __LINE__);
+                debug_msg("read n < 0, fd : %d, file: %s, line: %d", conn->connfd, __FILE__, __LINE__);
                 break;
             }
         }
@@ -169,27 +169,46 @@ static void event_readable_callback(int fd, event* ev, void* arg)
 
 static void event_writable_callback(int fd, event* ev, void* arg)
 {
+    // connection* conn = (connection*)arg;
+    // int size = 0;
+    // char* msg = buffer_read_all(conn->buf_socket_write, &size);
+    // if (size > 0)  {
+    //     int n = send(conn->connfd, msg, size, 0);
+    //     mu_free(msg);  
+    // }
+    // int left = buffer_get_size(conn->buf_socket_write);
+    // if (left == 0)  {        //缓存区数据已全部发送，则关闭发送消息
+    //     event_disable_writing(conn->conn_event);
+    //     if (conn->state == State_Closing)  {
+    //         connection_free(conn);    //如不关闭一直会触发
+    //         conn->state = State_Closed;
+    //     }
+    // }
+    //printf("write buf is %d !!! \n", size);
+
+
+    int len = 0;
     connection* conn = (connection*)arg;
-    int size = 0;
-    char* msg = buffer_read_all(conn->buf_socket_write, &size);
-    if (size > 0)  {
-        int n = send(conn->connfd, msg, size, 0);
-        mu_free(msg);  
-    }
-    int left = buffer_get_size(conn->buf_socket_write);
-    if (left == 0)  {        //缓存区数据已全部发送，则关闭发送消息
-        event_disable_writing(conn->conn_event);
-        if (conn->state == State_Closing)  {
-            connection_free(conn);    //如不关闭一直会触发
-            conn->state = State_Closed;
+    char* msg = ring_buffer_get_msg(conn->ring_buffer_write, &len);
+    if (msg && len > 0)  {
+        int n = send(conn->connfd, msg, len, 0);
+        if (n > 0)  {
+            ring_buffer_release_bytes(conn->ring_buffer_write, n);
+            ring_buffer_get_msg(conn->ring_buffer_write, &len);
+            if (len == 0)  {
+                event_disable_writing(conn->conn_event);
+                if (conn->state == State_Closing)  {
+                    connection_free(conn);    //如不关闭一直会触发
+                    conn->state = State_Closed;
+                }
+            }
         }
     }
-    //printf("write buf is %d !!! \n", size);
 }
 
 static void handle_close(connection* conn)
 {
-    printf("handle_close!!! \n");
+    printf("handle_close!!! %d  \n", conn->connfd);
     connection_disconnected(conn);
 }
 
@@ -250,21 +269,43 @@ void connection_send(connection *conn, char *buf, size_t len)
 
 int connection_send_buffer(connection *conn)
 {
-    if (ring_buffer_readable_bytes(conn->ring_buffer_write) == 0)  {                //缓冲区为空直接发送
-        int len = ring_buffer_readable_bytes(conn->ring_buffer_read);
-        char* msg = ring_buffer_readable_start(conn->ring_buffer_read);
-        int ret = send(conn->connfd, msg, len, 0);
-        ring_buffer_release_bytes(conn->ring_buffer_read, len);
-        return len;
-    }
-    else  {
-        int len = ring_buffer_readable_bytes(conn->ring_buffer_read);
-        char* msg = ring_buffer_readable_start(conn->ring_buffer_read);
-        ring_buffer_push_data(conn->ring_buffer_write, msg, len);
-        ring_buffer_release_bytes(conn->ring_buffer_read, len);
-        event_enable_writing(conn->conn_event);              //须开启才能发送
+    // if (ring_buffer_readable_bytes(conn->ring_buffer_write) == 0)  {                //缓冲区为空直接发送
+    //     int len = 0;
+    //     char* msg = ring_buffer_get_msg(conn->ring_buffer_read, &len);
+    //     if (msg && len > 0)  {
+    //         int ret = send(conn->connfd, msg, len, 0);
+    //         ring_buffer_release_bytes(conn->ring_buffer_read, len);
+    //     }
+    //     return len;
+    // }
+    // else  {
+    //     int len = 0;
+    //     char* msg = ring_buffer_get_msg(conn->ring_buffer_read, &len);
+    //     ring_buffer_push_data(conn->ring_buffer_write, msg, len);
+    //     ring_buffer_release_bytes(conn->ring_buffer_read, len);
+    //     event_enable_writing(conn->conn_event);              //须开启才能发送
 
-        printf("connection_send %d\n", len);
-        return len;
+    //     printf("connection_send %d\n", len);
+    //     return len;
+    // }
+
+    int len = 0;
+    char* msg = ring_buffer_get_msg(conn->ring_buffer_write, &len);
+    if (msg && len > 0)  {
+        int n = send(conn->connfd, msg, len, 0);
+        if (n == -1)  {
+            return -1;
+        }
+        if (n > 0)  {
+            ring_buffer_release_bytes(conn->ring_buffer_write, n);
+            if (n < len)  {       //没有发完全
+                event_enable_writing(conn->conn_event);              //须开启才能发送
+                return 1;
+            }
+            else  {
+                return 0;
+            }
+        }
     }
+    return -1;
 }
