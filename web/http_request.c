@@ -144,22 +144,21 @@ void http_request_handle_reset(request* req)
 
 static int request_handle_request_line(request *r)     //parse request line
 {       
-    int status;
     int msg_len = 0;
     char* msg = ring_buffer_get_msg(r->conn->ring_buffer_read, &msg_len);
     if (!r->par.next_parse_pos)  {
         r->par.next_parse_pos = msg;
     }
     
-    status = parse_request_line(msg, &msg_len, &r->par);
-    if (status == OK)  {
+    int status = parse_request_line(msg, &msg_len, &r->par);
+    if (status != OK)  {
+        if (status == AGAIN)  {
+            return AGAIN;
+        }
+        else   {
+            return 400;
+        }
     }  
-    else if (status == AGAIN)  {
-        return AGAIN;
-    }
-    else   {
-        return 400;
-    }
     
     // status = OK now
     parse_archive *archive = &(r->par);
@@ -171,14 +170,14 @@ static int request_handle_request_line(request *r)     //parse request line
 
     // make `relative_path` a c-style string, really ugly....
     char *p = archive->url.abs_path.str;
-    while (*p && *p != ' ' && *p != '?')
+    while (*p && *p != ' ' && *p != '?') {
         p++;
+    }
     *p = '\0';
 
     /* check abs_path */
     const char *relative_path = NULL;
-    relative_path = archive->url.abs_path.len == 1 && archive->url.abs_path.str[0] == '/'
-                        ? "./" : archive->url.abs_path.str + 1;
+    relative_path = archive->url.abs_path.len == 1 && archive->url.abs_path.str[0] == '/' ? "./" : archive->url.abs_path.str + 1;
 
     int fd = openat(server_config.rootdir_fd, relative_path, O_RDONLY);
     if (fd == ERROR)  {

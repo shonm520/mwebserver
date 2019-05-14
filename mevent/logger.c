@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 
-#define MAXLINE	128
+#define MAXLINE	1024
 
 #define DBG_PRINTF debug_print
 
