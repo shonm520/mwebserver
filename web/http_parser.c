@@ -35,8 +35,8 @@ static int parse_url(char *begin, char *end, parse_archive *ar);
  * Method Request-URI HTTP-Version CRLF  
  * eg:GET /form.html HTTP/1.1 (CRLF)
  */
-int parse_request_line(char* msg, int* len, parse_archive *ar) {
-  //char ch;
+int parse_request_line(char* msg, int* len, parse_archive *ar) 
+{
   assert(len);
   char *p;
   for (p = ar->next_parse_pos; p < (msg + *len); p++) {
@@ -230,11 +230,9 @@ done:;
  *  CRLF_LINE: `\r\n`, which means all headers have been parsed
  *
  */
-int parse_header_line(char* msg, int *len, parse_archive *ar) {
+int parse_header_line(char* msg, int *len, parse_archive *ar) 
+{
   char ch, *p;
-  // NOTE: isCRLF_LINE must be an attribute of ar, cannot be a local variable.
-  // see the change in fix commit.
-  // bool isCRLF_LINE = true;
   assert(len);
   for (p = ar->next_parse_pos; p < (msg + *len); p++) {
     ch = *p;
@@ -347,7 +345,8 @@ done:;
   return ar->isCRLF_LINE ? CRLF_LINE : OK;
 }
 
-static int parse_method(char *begin, char *end) {
+static int parse_method(char *begin, char *end) 
+{
   int len = end - begin;
   switch (len) {
   case 3:
@@ -383,13 +382,11 @@ static int parse_method(char *begin, char *end) {
 
 
 
-#define Copy_Str(item, src, len_) \
+#define Move_Str(item, src, len_) \
   do { \
-    (item).str = (char*)mu_malloc(len_ + 1); \
+    (item).str = src; \
     (item).len = len_; \
-    memcpy((item).str, src, len_); \
   } while(0)
-  
 
 /**
  * Some Samples:
@@ -402,15 +399,11 @@ static int parse_method(char *begin, char *end) {
  * /video/life.of.pi.BlueRay  `dir`
  */
 /* simple parse url */
-static int parse_url(char *begin, char *end, parse_archive *ar) {
+static int parse_url(char *begin, char *end, parse_archive *ar)
+ {
   int len = end - begin;
   assert(len >= 0);
-  // ar->request_url_string.str = (char*)mu_malloc(len + 1);
-  // ar->request_url_string.len = len;
-  // memcpy(ar->request_url_string.str, begin, len);
-
-  Copy_Str(ar->request_url_string, begin, len);
-  
+  Move_Str(ar->request_url_string, begin, len);
   int curr_state = S_URL_BEGIN;
 
   char ch;
@@ -431,20 +424,12 @@ static int parse_url(char *begin, char *end, parse_archive *ar) {
     case S_URL_ABS_PATH:
       switch (ch) {
       case ' ':
-        //ar->url.abs_path.str = begin;
-        //ar->url.abs_path.len = p - begin;
-
-        Copy_Str(ar->url.abs_path, begin, p - begin);
-        Copy_Str(ar->url.query_string, p, 0);
-
-        //ar->url.query_string.str = p;
-        //ar->url.query_string.len = 0;
+        Move_Str(ar->url.abs_path, begin, p - begin);
+        Move_Str(ar->url.query_string, p, 0);
         curr_state = S_URL_END;
         break;
       case '?':
-        //ar->url.abs_path.str = begin;
-        //ar->url.abs_path.len = p - begin;
-        Copy_Str(ar->url.abs_path, begin, p - begin);
+        Move_Str(ar->url.abs_path, begin, p - begin);
         begin = p + 1;
         curr_state = S_URL_QUERY;
         break;
@@ -456,9 +441,7 @@ static int parse_url(char *begin, char *end, parse_archive *ar) {
     case S_URL_QUERY:
       switch (ch) {
       case ' ':
-        //ar->url.query_string.str = begin;
-        //ar->url.query_string.len = p - begin;
-        Copy_Str(ar->url.query_string, begin, p - begin);
+        Move_Str(ar->url.query_string, begin, p - begin);
         curr_state = S_URL_END;
       default:
         break;
@@ -475,10 +458,8 @@ parse_extension:;
   char *abs_path_end = ar->url.abs_path.str + ar->url.abs_path.len;
 
   for (p = abs_path_end; p != ar->url.abs_path.str; p--) {
-    if (*p == '.') {
-      //ar->url.mime_extension.str = p + 1;
-      //ar->url.mime_extension.len = abs_path_end - p - 1;
-      //Copy_Str(ar->url.mime_extension, p + 1, abs_path_end - p - 1);
+    if (*p == '.')  {
+      Move_Str(ar->url.mime_extension, p + 1, abs_path_end - p - 1);
       break;
     }  else if (*p == '/')
       break;
@@ -487,19 +468,17 @@ parse_extension:;
   return OK;
 }
 
-int parse_header_body_identity(char* msg, int *len, parse_archive *ar) {
+int parse_header_body_identity(char* msg, int *len, parse_archive *ar) 
+{
   if (ar->content_length <= 0)
     return OK;
   // not that complicated, using `next_parse_pos` to indicate where to parse
   size_t received = *len;
   ar->body_received += received;
-#ifndef NDEBUG
-  printf("%s %d\n", __FUNCTION__, __LINE__);
-  printf("%s %lu\n", ar->next_parse_pos, received);
-#endif
+
   ar->next_parse_pos = msg + *len;
 
-  if (ar->body_received >= ar->content_length) { // full data recv
+  if (ar->body_received >= ar->content_length)  { // full data recv
     return OK;
   }
   return AGAIN; // will conitinue to recv until full data recv or conn timeout

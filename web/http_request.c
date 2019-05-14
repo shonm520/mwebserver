@@ -13,7 +13,7 @@
 #include "dict.h"
 #include "str.h"
 #include "mevent/connection.h"
-#include "http.h"
+
 
 #define OK    (0)
 #define AGAIN (1)
@@ -35,19 +35,22 @@ static int response_handle_send_line_and_header(request *r);
 static int response_handle_send_file( request *r);
 static int response_assemble_err_buffer( request *r, int status_code);
 
-typedef int (*header_handle_method)(request *, size_t);
 
-/* handlers for specific http headers */
-static int request_handle_hd_base(request *r, size_t offset);
-static int request_handle_hd_connection(request *r, size_t offset);
-static int request_handle_hd_content_length(request *r, size_t offset);
-static int request_handle_hd_transfer_encoding(request *r, size_t offset);
+typedef int (*header_handle_method)(request *, void*);
 
-typedef struct {
+typedef struct header_func_t{
   ssstr hd;
   header_handle_method func;
   size_t offset;
 } header_func;
+
+
+
+/* handlers for specific http headers */
+static int request_handle_hd_base(request *r, void*);
+static int request_handle_hd_connection(request *r, void*);
+static int request_handle_hd_content_length(request *r, void*);
+static int request_handle_hd_transfer_encoding(request *r, void*);
 
 #define XX(hd, hd_mn, func)  \
   { SSSTR(hd), func, offsetof(request_headers_t, hd_mn) }
@@ -68,15 +71,15 @@ static header_func hf_list[] = {
     XX("max-forwards", max_forwards, request_handle_hd_base),
     XX("range", range, request_handle_hd_base),
     XX("referer", referer, request_handle_hd_base),
-    XX("transfer-encoding", transfer_encoding,
-       request_handle_hd_transfer_encoding),
+    XX("transfer-encoding", transfer_encoding, request_handle_hd_transfer_encoding),
     XX("user-agent", user_agent, request_handle_hd_base),
 };
 #undef XX
 
 dict_t header_handler_dict;
 
-void header_handler_dict_init() {
+void header_handler_dict_init()
+ {
     dict_init(&header_handler_dict);
     size_t nsize = sizeof(hf_list) / sizeof(hf_list[0]);
     int i;
@@ -95,9 +98,11 @@ int http_request(request* req)
         return -1;
     }
     int status = OK;
-    do {
+    int len = ring_buffer_readable_bytes(req->conn->ring_buffer_read);
+    do  {
         status = req->req_handler(req);
     }  while(req->req_handler != NULL && status == OK);
+    ring_buffer_release_bytes(req->conn->ring_buffer_read, len);
 
     if (status == OK)  {
         response_handle(req);
@@ -148,7 +153,6 @@ static int request_handle_request_line(request *r)     //parse request line
     
     status = parse_request_line(msg, &msg_len, &r->par);
     if (status == OK)  {
-        ring_buffer_release_bytes(r->conn->ring_buffer_read, msg_len);
     }  
     else if (status == AGAIN)  {
         return AGAIN;
@@ -174,8 +178,7 @@ static int request_handle_request_line(request *r)     //parse request line
     /* check abs_path */
     const char *relative_path = NULL;
     relative_path = archive->url.abs_path.len == 1 && archive->url.abs_path.str[0] == '/'
-                        ? "./"
-                        : archive->url.abs_path.str + 1;
+                        ? "./" : archive->url.abs_path.str + 1;
 
     int fd = openat(server_config.rootdir_fd, relative_path, O_RDONLY);
     if (fd == ERROR)  {
@@ -211,18 +214,17 @@ static int request_handle_headers(request *r)     //parse request header
     msg_left = msg_len;
         
     while (true) {
-        status = parse_header_line(msg, &msg_len, archive);
+        status = parse_header_line(msg, &msg_len, archive);      //msg_len is in and out 
         switch (status)  {
-        case AGAIN:                 /* not a complete header */
+        case AGAIN:                 // not a complete header 
             debug_msg("parse request header line error: not completed\n");
             return AGAIN;
-        case INVALID_REQUEST:       /* header invalid */
+        case INVALID_REQUEST:       // header invalid
             debug_msg("parse request header line error: invalide request\n");
             return 400;
-        case CRLF_LINE:             /* all headers completed */
+        case CRLF_LINE:             // all headers completed 
             goto header_done;
-        case OK:                    /* a header completed */
-            ring_buffer_release_bytes(r->conn->ring_buffer_read, msg_len);
+        case OK:                    // a header completed 
             msg += msg_len;
             msg_left -= msg_len;
             msg_len = msg_left;
@@ -233,11 +235,10 @@ static int request_handle_headers(request *r)     //parse request header
             if (hf == NULL)
                 break;
             header_handle_method func = hf->func;
-            size_t offset = hf->offset;
             if (func != NULL) {
-                status = func(r, offset);
+                status = func(r, hf);
                 if (status != OK)
-                return OK;
+                    return OK;
             }
             break;
         }
@@ -267,7 +268,6 @@ static int request_handle_body(request *r)   //parse request body
         return AGAIN;
     case OK:
         r->req_handler = NULL; // body parse done !!! no more handlers
-        ring_buffer_release_bytes(r->conn->ring_buffer_read, msg_len);
         return OK;
     default:
         return ERROR;
@@ -276,17 +276,19 @@ static int request_handle_body(request *r)   //parse request body
 }
 
 /* save header value into the proper position of parse_archive.req_headers */
-int request_handle_hd_base(request *r, size_t offset)
+int request_handle_hd_base(request *r, void* hf)
  {
     parse_archive *archive = &r->par;
-    ssstr *header = (ssstr *)(((char *)(&archive->req_headers)) + offset);
-    *header = archive->header[1];
+    header_func* hf_ = (header_func*)hf;
+    size_t offset = hf_->offset;
+    ssstr *item = (ssstr *)(((char *)(&archive->req_headers)) + offset);
+    *item = archive->header[1];
     return OK;
 }
 
-int request_handle_hd_connection(request *r, size_t offset) 
+int request_handle_hd_connection(request *r, void* hf) 
 {
-    request_handle_hd_base(r, offset);
+    request_handle_hd_base(r, hf);
     ssstr *connection = &(r->par.req_headers.connection);
     if (ssstr_caseequal(connection, "keep-alive")) {
         r->par.keep_alive = true;
@@ -298,9 +300,9 @@ int request_handle_hd_connection(request *r, size_t offset)
     return OK;
 }
 
-int request_handle_hd_content_length(request *r, size_t offset) 
+int request_handle_hd_content_length(request *r, void* hf) 
 {
-    request_handle_hd_base(r, offset);
+    request_handle_hd_base(r, hf);
     ssstr *content_length = &(r->par.req_headers.content_length);
     int len = atoi(content_length->str);
     if (len <= 0) {
@@ -312,9 +314,9 @@ int request_handle_hd_content_length(request *r, size_t offset)
 
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding
 // https://imququ.com/post/content-encoding-header-in-http.html
-int request_handle_hd_transfer_encoding(request *r, size_t offset) 
+int request_handle_hd_transfer_encoding(request *r, void* hf) 
 {
-    request_handle_hd_base(r, offset);
+    request_handle_hd_base(r, hf);
     ssstr *transfer_encoding = &(r->par.req_headers.transfer_encoding);
     if (ssstr_caseequal(transfer_encoding, "chunked")  ||
         ssstr_caseequal(transfer_encoding, "compress") ||

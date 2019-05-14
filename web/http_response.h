@@ -3,7 +3,7 @@
 typedef struct request_t request;
 
 
-#define SERVER_NAME "lotos/0.1"
+#define SERVER_NAME "mwebser/0.1"
 
 // https://github.com/nodejs/http-parser/blob/b11de0f5c65bcc1b906f85f4df58883b0c133e7b/http_parser.h#L233
 /* status code */
@@ -79,17 +79,6 @@ extern void mime_dict_free();
 
 extern void status_table_init();
 
-// typedef struct {
-//   int err_page_fd;             /* fildes of err page */
-//   const char *raw_err_page;    /* raw data of err page file */
-//   size_t raw_page_size;        /* size of err page file */
-//   buffer_t *rendered_err_page; /* buffer contains err msg */
-//   size_t rendered_page_size;   /* size of err page file */
-// } err_page_t;
-
-// extern int err_page_init();
-// extern void err_page_free();
-// extern char *err_page_render_buf();
 
 extern void response_append_status_line(request *r);
 extern void response_append_date(request *r);

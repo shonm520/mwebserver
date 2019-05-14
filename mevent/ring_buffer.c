@@ -86,6 +86,9 @@ int ring_buffer_available_bytes(ring_buffer* rb)
 
 void ring_buffer_release_bytes(ring_buffer* rb, int size)
 {
+    if (rb->msg + rb->start)  {
+        memset(rb->msg + rb->start, 0, size);
+    }
     rb->start += size;
     if (rb->start == rb->end)  {
         rb->start = rb->end = 0;

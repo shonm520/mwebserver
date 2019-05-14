@@ -72,7 +72,6 @@ void response_append_status_line(request *r) {
 
 
 
-
 void response_append_date(request *r)
  {
     ring_buffer* buf = r->conn->ring_buffer_write;
@@ -98,7 +97,7 @@ void response_append_content_type(request *r)
 {
     ring_buffer* buf = r->conn->ring_buffer_write;
     ssstr content_type;
-    do {
+    do  {
         if (r->par.err_req)  {
             content_type = SSSTR("text/html");
             break;
@@ -130,7 +129,6 @@ void response_append_content_length(request *r)
 }
 
 
-
 void response_append_connection(request *r) 
 {
     ring_buffer* buf = r->conn->ring_buffer_write;
@@ -143,7 +141,6 @@ void response_append_connection(request *r)
     }
     ring_buffer_push_data(buf, connection.str, connection.len);
 }
-
 
 
 void response_append_crlf(request *r) 

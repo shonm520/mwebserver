@@ -6,9 +6,7 @@ typedef struct connection_t connection;
 typedef struct request_t request;
 
 struct request_t {
-  connection *conn;                       /* belonged connection */
-  //buffer_t *ib;                         /* request buffer */
-  //buffer_t *ob;                         /* response buffer */
+  connection *conn;                     /* belonged connection */
   parse_archive par;                    /* parse_archive */
   int resource_fd;                      /* resource fildes */
   int resource_size;                    /* resource size */

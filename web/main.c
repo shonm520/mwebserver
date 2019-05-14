@@ -5,8 +5,9 @@
 #include "mevent/buffer.h"
 #include "mevent/config.h"
 
-#include "web/http.h"
 #include "config.h"
+
+#include "web/http_request.h"
 
 
 config server_config;
@@ -16,23 +17,19 @@ void onMessage(connection *conn)
 {
     
     int len = ring_buffer_readable_bytes(conn->ring_buffer_read);
-    printf("onMessage!!!! %d, fd is %d\n", len, conn->connfd);
+    debug_msg("onMessage!!!! %d, fd is %d\n", len, conn->connfd);
     char* msg = ring_buffer_readable_start(conn->ring_buffer_read);
 
-    printf("msg is %s\n", msg);
-
-   
-    //do_request(msg, len); 
+    debug_msg("msg is %s\n", msg);
 
     http_request(conn->handler);  
 }
 
 void onConnection(connection* conn)
 {
-    printf("connected!!!! fd is %d\n", conn->connfd);
+    debug_msg("connected!!!! fd is %d\n", conn->connfd);
 
     http_request_handle_init(conn);
-
 }
 
 int main(int argc, char* argv[])  
@@ -44,8 +41,7 @@ int main(int argc, char* argv[])
     if (argc >= 3)
         thread_num = atoi(argv[2]);
   
-    printf("port, thread_num is %d, %d \n", port, thread_num);
-
+    debug_msg("port, thread_num is %d, %d \n", port, thread_num);
 
     config_parse("", &server_config);
 
