@@ -86,6 +86,7 @@ extern void response_append_server( request *r);
 extern void response_append_content_type( request *r);
 extern void response_append_content_length( request *r);
 extern void response_append_connection( request *r);
+extern void response_append_timeout( request *r);
 extern void response_append_crlf( request *r);
 
 

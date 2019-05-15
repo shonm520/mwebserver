@@ -102,16 +102,24 @@ int http_request(request* req)
     do  {
         status = req->req_handler(req);
     }  while(req->req_handler != NULL && status == OK);
+
     ring_buffer_release_bytes(req->conn->ring_buffer_read, len);
 
     if (status == OK)  {
         response_handle(req);
     }
     else  {
-        response_assemble_err_buffer(req, 501);
+        response_assemble_err_buffer(req, status);
+    }
+
+    if (!req->par.keep_alive)  {
+        connection_active_close(req->conn);
     }
 
     http_request_handle_reset(req);        //reset connect
+
+    //connection_active_close(req->conn);
+
 }
 
 
@@ -134,6 +142,9 @@ void http_request_handle_init(connection* conn)
 void http_request_handle_reset(request* req)
 {
     parse_archive_init(&req->par);
+    if (req->resource_fd > 0)  {
+        close(req->resource_fd);
+    }
     req->resource_fd = -1;
     req->status_code = 200;
 
@@ -181,22 +192,24 @@ static int request_handle_request_line(request *r)     //parse request line
 
     int fd = openat(server_config.rootdir_fd, relative_path, O_RDONLY);
     if (fd == ERROR)  {
+        printf("file %s not found\n", relative_path);
+        perror("file not found");
         return 404;
     }
     struct stat st;
     fstat(fd, &st);
 
-    if (S_ISDIR(st.st_mode)) { // substitute dir to index.html
+    if (S_ISDIR(st.st_mode)) {   // substitute dir to index.html
         int html_fd = openat(fd, "index.html", O_RDONLY);
         close(fd);
         if (html_fd == ERROR) {
             return 404;
         }
-        fd = html_fd;
-        fstat(fd, &st);
+        fstat(html_fd, &st);
         ssstr_set(&archive->url.mime_extension, "html");
+        fd = html_fd;
     }
-    r->resource_fd = fd;
+    r->resource_fd = fd;       //shoudl not close(fd) because used in sendfile
     r->resource_size = st.st_size;
     r->req_handler = request_handle_headers;
     return OK;
@@ -351,6 +364,7 @@ int response_handle_send_line_and_header(request *r)
     response_append_content_type(r);
     response_append_content_length(r);
     response_append_connection(r);
+    response_append_timeout(r);
     response_append_crlf(r);
 
     int ret = connection_send_buffer(r->conn);
@@ -370,19 +384,17 @@ int response_handle_send_line_and_header(request *r)
         r->par.response_done = true;
         return OK;
     }
-    return -1;
+    return 500;
 }
 
 int response_handle_send_file( request *r) 
 {
     int len = sendfile(r->conn->connfd, r->resource_fd, NULL, r->resource_size);
-    if (len == -1)  {
-        return ERROR;
-    }
     if (len == 0 || r->resource_size == len)  {
         r->par.response_done = true;
         return OK;
     }
+    return 500;
 }
 
 
@@ -391,16 +403,13 @@ int response_assemble_err_buffer(request *r, int status_code) {
     r->par.err_req = true;
     r->status_code = status_code;
 
-    int fd = openat(server_config.rootdir_fd, "error.html", O_RDONLY);
-    if (fd == -1)   {
-        r->resource_fd = -1;
-        r->resource_size = 0;
+    int resource_size = 0;
+    int resource_fd = openat(server_config.rootdir_fd, "error.html", O_RDONLY);
+    if (resource_fd > 0)  {
+        struct stat st;
+        fstat(resource_fd, &st);
+        resource_size = st.st_size;
     }
-    struct stat st;
-    fstat(fd, &st);
-
-    r->resource_fd = fd;
-    r->resource_size = st.st_size;
 
     response_append_status_line(r);
     response_append_date(r);
@@ -411,8 +420,9 @@ int response_assemble_err_buffer(request *r, int status_code) {
     response_append_connection(r);
     response_append_crlf(r);
 
-    if (r->resource_fd > 0 && r->resource_size > 0)  {
-        sendfile(r->conn->connfd, r->resource_fd, NULL, r->resource_size);
+    if (resource_fd > 0 && resource_size > 0)  {
+        sendfile(r->conn->connfd, resource_fd, NULL, resource_size);
+        close(resource_fd);
     }
 
     r->par.response_done = true;

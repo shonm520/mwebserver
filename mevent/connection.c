@@ -16,7 +16,8 @@
 #include "ring_buffer.h"
 
 
-static void handle_close(connection* conn);
+static void connection_passive_close(connection* conn);
+static void connection_disconnect(connection* conn);
 static void event_readable_callback(int fd, event* ev, void* arg);
 static void event_writable_callback(int fd, event* ev, void* arg);
 
@@ -163,7 +164,7 @@ static void event_readable_callback(int fd, event* ev, void* arg)
         conn->message_callback(conn);
     }
     else if(nread == 0)  {
-        handle_close(conn);
+        connection_passive_close(conn);
     }
 }
 
@@ -194,8 +195,8 @@ static void event_writable_callback(int fd, event* ev, void* arg)
         int n = send(conn->connfd, msg, len, 0);
         if (n > 0)  {
             ring_buffer_release_bytes(conn->ring_buffer_write, n);
-            ring_buffer_get_msg(conn->ring_buffer_write, &len);
-            if (len == 0)  {
+            len = ring_buffer_readable_bytes(conn->ring_buffer_write);
+            if (len == 0)  {    //send all buf
                 event_disable_writing(conn->conn_event);
                 if (conn->state == State_Closing)  {
                     connection_free(conn);    //如不关闭一直会触发
@@ -206,10 +207,10 @@ static void event_writable_callback(int fd, event* ev, void* arg)
     }
 }
 
-static void handle_close(connection* conn)
+static void connection_passive_close(connection* conn)
 {
-    printf("handle_close!!! %d  \n", conn->connfd);
-    connection_disconnected(conn);
+    printf("connection_passive_close!!! %d  \n", conn->connfd);
+    connection_disconnect(conn);
 }
 
 void connection_established(connection* conn)
@@ -218,24 +219,32 @@ void connection_established(connection* conn)
         conn->connected_cb(conn);
 }
 
-void connection_disconnected(connection* conn)
+void connection_active_close(connection* conn)
 {
-    if (conn->disconnected_cb)  {
-        conn->disconnected_cb(conn);
-    }
+    printf("active close %d\n", conn->connfd);
+    connection_disconnect(conn);
+}
 
+static void connection_disconnect(connection* conn)
+{
     conn->state = State_Closing;
-    if (buffer_get_size(conn->buf_socket_write) > 0)   {     //收到对方关闭写的通知时，如果缓冲区还有数据要发送则等数据发送完毕后再关闭socket
+    if (ring_buffer_readable_bytes(conn->ring_buffer_write) > 0)   {     //收到对方关闭写的通知时，如果缓冲区还有数据要发送则等数据发送完毕后再关闭socket
         event_enable_writing(conn->conn_event); 
     }
     else  {
-         connection_free(conn);    //如不关闭一直会触发
+        connection_free(conn);    //如不关闭一直会触发
+        conn->state = State_Closed;
     }
 }
 
 void connection_free(connection* conn)
 {
+    if (conn->disconnected_cb)  {
+        conn->disconnected_cb(conn);
+    }
+
     event_free(conn->conn_event);
+
     if (conn->buf_socket_read)  {
         socket_buffer_free(conn->buf_socket_read);
     }
@@ -249,7 +258,6 @@ void connection_free(connection* conn)
     if (conn->ring_buffer_write)  {
         ring_buffer_free(conn->ring_buffer_write);
     }
-    
     
     mu_free(conn);
 }

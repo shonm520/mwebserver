@@ -41,7 +41,7 @@ struct connection_t  {
 
 connection* connection_create(event_loop* loop, int fd, message_callback_pt msg_cb);
 void connection_established(connection* conn);
-void connection_disconnected(connection* conn);
+void connection_active_close(connection* conn);
 void connection_free(connection* conn);
 void connection_send(connection *conn, char *buf, size_t len);
 

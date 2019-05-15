@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <signal.h>
 #include "mevent/servermanager.h"
 #include "mevent/connection.h"
 #include "mevent/listener.h"
@@ -12,6 +13,8 @@
 
 config server_config;
 
+int g_msgcnt = 0;
+int g_concnt = 0;
 
 void onMessage(connection *conn)
 {
@@ -21,20 +24,28 @@ void onMessage(connection *conn)
     char* msg = ring_buffer_readable_start(conn->ring_buffer_read);
 
     debug_msg("msg is %s\n", msg);
-
+    g_msgcnt++;
     http_request(conn->handler);  
 }
 
 void onConnection(connection* conn)
 {
     debug_msg("connected!!!! fd is %d\n", conn->connfd);
-
+    g_concnt++;
     http_request_handle_init(conn);
+}
+
+void stop(int stop)
+{
+    printf("\ng_concnt, g_msgcnt is %d, %d\n", g_concnt, g_msgcnt);
+    signal(SIGINT, SIG_DFL);
 }
 
 int main(int argc, char* argv[])  
 {
-     int port = DEFAULT_PORT;
+    signal(SIGINT, stop);
+    
+    int port = DEFAULT_PORT;
     int thread_num = MAX_LOOP;
     if (argc >= 2)
         port = atoi(argv[1]);

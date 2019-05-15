@@ -176,7 +176,8 @@ typedef struct {
   bool err_req;
 } parse_archive;
 
-static inline void parse_archive_init(parse_archive *ar) {
+static inline void parse_archive_init(parse_archive *ar) 
+{
   memset(ar, 0, sizeof(parse_archive));
   ar->isCRLF_LINE = true;
   ar->content_length = -1; // no Content-Length header
