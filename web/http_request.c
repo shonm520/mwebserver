@@ -112,14 +112,11 @@ int http_request(request* req)
         response_assemble_err_buffer(req, status);
     }
 
-    if (!req->par.keep_alive)  {
+    if (!req->par.keep_alive)  {           //short connection should active close connection after a request
         connection_active_close(req->conn);
     }
 
     http_request_handle_reset(req);        //reset connect
-
-    //connection_active_close(req->conn);
-
 }
 
 

@@ -46,7 +46,7 @@ server_manager* server_manager_create(int port, int thread_num)
 
     signal(SIGPIPE, SIG_IGN);
 
-    if (thread_num < 0) {
+    if (thread_num < 0 || thread_num > MAX_LOOP) {
         thread_num = MAX_LOOP;
     }
     manager->loop_num = thread_num;

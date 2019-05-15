@@ -143,13 +143,13 @@ void response_append_connection(request *r)
 }
 
 
-int Keep_Alive = 5;
+int Keep_Alive = 30;
 void response_append_timeout(request *r) 
 {
     ring_buffer* buf = r->conn->ring_buffer_write;
     if (r->par.keep_alive)  {
         char temp[64] = {0};
-        sprintf(temp, "Keep-Alive: timeout=%d, max=100" CRLF, Keep_Alive);
+        sprintf(temp, "Keep-Alive: timeout=%d, max=1" CRLF, Keep_Alive);    //it may not work, depends on client's behaviour
         ring_buffer_push_data(buf, temp, strlen(temp));
     }
 }

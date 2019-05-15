@@ -8,6 +8,9 @@
 
 int config_parse(char* file, config* conf)
 {
+    conf->port = 2019;
+    conf->work_thread = 0;
+    
     conf->rootdir = "./www";
     DIR *dirp = NULL;
     if (conf->rootdir != NULL &&

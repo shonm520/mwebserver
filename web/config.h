@@ -4,6 +4,8 @@ typedef struct {
   int timeout;     /* connection expired time */
   char *rootdir;   /* html root directory */
   int rootdir_fd;  /* fildes of rootdir */
+  int port;
+  int work_thread;
 } config;
 
 int config_parse(char* file, config*);
