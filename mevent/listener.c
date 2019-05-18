@@ -88,12 +88,11 @@ static void event_accept_callback(int listenfd, event* ev, void* arg)
 	}
     conn->port = ntohs(client_addr.addr.sin_port);  //used for debug
     conn->time_on_connect = time(NULL);
+    conn->disconnected_cb = default_disconnected_callback;
 	
 	if (manager->new_connection_callback)
         conn->connected_cb = manager->new_connection_callback;
         connection_established(conn);
-
-    conn->disconnected_cb = default_disconnected_callback;
 
     connection_start(conn, loop);
 }
