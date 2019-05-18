@@ -26,8 +26,8 @@ struct connection_t  {
     connection_callback_pt   connected_cb;
     connection_callback_pt   disconnected_cb;
 
-    socket_buffer*  buf_socket_read;
-    socket_buffer*  buf_socket_write;
+    //socket_buffer*  buf_socket_read;
+    //socket_buffer*  buf_socket_write;
 
     ring_buffer*   ring_buffer_read;
     ring_buffer*   ring_buffer_write;
@@ -45,7 +45,6 @@ connection* connection_create(event_loop* loop, int fd, message_callback_pt msg_
 void connection_established(connection* conn);
 void connection_active_close(connection* conn);
 void connection_free(connection* conn);
-void connection_send(connection *conn, char *buf, size_t len);
 
 int connection_send_buffer(connection *conn);
 
