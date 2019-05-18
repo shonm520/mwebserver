@@ -1,5 +1,5 @@
 #include <time.h>
-
+#include <stdio.h>
 #include "mevent/ring_buffer.h"
 #include "mevent/connection.h"
 #include "http_response.h"
@@ -35,7 +35,8 @@ static ssstr Mime_List[][2] = {
 
 static dict_t Mime_Dict;
 
-void mime_dict_init() {
+void mime_dict_init() 
+{
   size_t nsize = sizeof(Mime_List) / sizeof(Mime_List[0]);
   int i;
   dict_init(&Mime_Dict);
@@ -53,7 +54,8 @@ void status_table_init() {
 #undef XX
 }
 
-void response_append_status_line(request *r) {
+void response_append_status_line(request *r) 
+{
     ring_buffer* buf = r->conn->ring_buffer_write;
 
     char temp[64] = {0};

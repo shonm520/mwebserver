@@ -41,13 +41,23 @@ connection* connection_create(event_loop* loop, int connfd, message_callback_pt 
     }
 
     conn->conn_event = ev;
-    event_add_io(loop->epoll_fd, ev);
-
-    conn->ring_buffer_read  = ring_buffer_new();
-    conn->ring_buffer_write = ring_buffer_new();
     
     return conn;    
 }
+
+
+void connection_start(connection* conn, event_loop* loop)
+{
+    if (! conn->ring_buffer_read)  {
+        conn->ring_buffer_read = ring_buffer_new();
+    }
+
+    if (! conn->ring_buffer_write)  {
+        conn->ring_buffer_write = ring_buffer_new();
+    }
+    event_add_io(loop->epoll_fd, conn->conn_event);
+}
+
 
 static int read_buffer(int fd, connection* conn)       //使用了readv但是好像并没有提高效率，不过使用了栈上数据，避免了malloc，free
 {
@@ -92,11 +102,10 @@ static void event_readable_callback(int fd, event* ev, void* arg)
 {
     connection* conn = (connection*)arg;
     int nread = read_buffer(fd, conn);
-
     if (nread > 0 && conn->message_callback)  {
         conn->message_callback(conn);
     }
-    else if(nread == 0)  {
+    else if(nread <= 0)  {
         connection_passive_close(conn);
     }
 }
@@ -138,6 +147,11 @@ void connection_active_close(connection* conn)
 {
     printf("active close %d\n", conn->connfd);
     connection_disconnect(conn);
+}
+
+void connection_set_disconnect_callback(connection* conn, connection_callback_pt cb)
+{
+    conn->disconnected_cb = cb;
 }
 
 static void connection_disconnect(connection* conn)

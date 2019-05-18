@@ -211,7 +211,7 @@ int parse_request_line(char* msg, int* len, parse_archive *ar)
       break;
     } // end switch(state)
   }   // end for
-  ar->next_parse_pos = *len;
+  ar->next_parse_pos = msg + *len;
   return AGAIN;
 done:;
   ar->next_parse_pos = p + 1;
@@ -330,7 +330,7 @@ int parse_header_line(char* msg, int *len, parse_archive *ar)
       break;
     } // end switch state
   }   // end for
-  ar->next_parse_pos = *len;
+  ar->next_parse_pos = msg + *len;
   return AGAIN;
 done:;
   ar->next_parse_pos = p + 1;

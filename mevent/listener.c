@@ -94,6 +94,8 @@ static void event_accept_callback(int listenfd, event* ev, void* arg)
         connection_established(conn);
 
     conn->disconnected_cb = default_disconnected_callback;
+
+    connection_start(conn, loop);
 }
 
 

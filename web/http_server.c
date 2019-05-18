@@ -2,7 +2,10 @@
 #include "mevent/servermanager.h"
 #include "mevent/listener.h"
 #include "mevent/connection.h"
+#include "mevent/ring_buffer.h"
+#include "mevent/config.h"
 #include "web/config.h"
+#include "web/http_request.h"
 
 
 
@@ -18,12 +21,20 @@ static void onMessage(connection *conn)
     http_request(conn->handler);  
 }
 
+static void onDisconnected(connection* conn)
+{
+    debug_msg("onDisconnected : %d\n", conn->connfd);
+    request* req = (request*)conn->handler;
+    mu_free(req);
+}
+
 static void onConnection(connection* conn)
 {
     debug_msg("connected!!!! fd is %d\n", conn->connfd);
     http_request_handle_init(conn);
-}
 
+    connection_set_disconnect_callback(conn, onDisconnected);
+}
 
 void http_server_init()
 {

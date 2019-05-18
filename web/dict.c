@@ -1,12 +1,16 @@
-#include "dict.h"
-#include "str.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
+
+#include "dict.h"
+#include "str.h"
 
 // https://www.byvoid.com/zhs/blog/string-hash-compare
-static unsigned int ssstr_hash_sdbm(const ssstr *key) {
+static unsigned int ssstr_hash_sdbm(const ssstr *key) 
+{
   const char *str = key->str;
   unsigned int hash = 0;
   while (str != (key->str + key->len)) {
@@ -31,7 +35,8 @@ void dict_put(dict_t *dict, const ssstr *key, void *val) {
 }
 
 /* cause we can put NULL as a valid value, so found_flag is necessary */
-void *dict_get(dict_t *dict, const ssstr *key, bool *found_flag) {
+void *dict_get(dict_t *dict, const ssstr *key, bool *found_flag)
+ {
   if (found_flag != NULL)
     *found_flag = false;
   unsigned int hash = LOTOS_HASH(key);
@@ -49,7 +54,8 @@ void *dict_get(dict_t *dict, const ssstr *key, bool *found_flag) {
   return NULL;
 }
 
-void dict_free(dict_t *d) {
+void dict_free(dict_t *d)
+ {
   if (d == NULL)
     return;
   int i;

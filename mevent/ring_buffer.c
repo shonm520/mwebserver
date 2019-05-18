@@ -34,7 +34,9 @@ void ring_buffer_push_data(ring_buffer* rb, char* msg, int size)
         else  {
             rb->cap = rb->cap * 2 + size;
             char* new_msg = (char*)mu_malloc(rb->cap);
-            memcpy(new_msg, rb->msg + rb->start, used);
+            if (used > 0 )  {
+                memcpy(new_msg, rb->msg + rb->start, used);
+            }
             memcpy(new_msg + used, msg, size);
             if (rb->msg)  {    //刚开始非空
                 mu_free(rb->msg);

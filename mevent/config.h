@@ -26,7 +26,7 @@
 
 #define MAX_EVENTS  32       //epoll_wait一次性监听最大的事件数量
 
-#define MAX_LOOP 4           //线程数量
+#define MAX_LOOP 4           //max thread
 
 
 

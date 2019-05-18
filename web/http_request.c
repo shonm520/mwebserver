@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include "http_request.h"
 #include "http_parser.h"
