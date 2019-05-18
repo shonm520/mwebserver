@@ -6,6 +6,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdio.h>
+#include <time.h>
 #include "listener.h"
 #include "servermanager.h"
 #include "event.h"
@@ -85,6 +86,8 @@ static void event_accept_callback(int listenfd, event* ev, void* arg)
 	if (conn == NULL)  {
 		debug_quit("create connection failed, file: %s, line: %d", __FILE__, __LINE__);
 	}
+    conn->port = ntohs(client_addr.addr.sin_port);  //used for debug
+    conn->time_on_connect = time(NULL);
 	
 	if (manager->new_connection_callback)
         conn->connected_cb = manager->new_connection_callback;

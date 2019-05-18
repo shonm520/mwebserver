@@ -34,7 +34,9 @@ struct connection_t  {
 
     int state;
 
-    void* handler;
+    void*  handler;
+    int    port;              //client port
+    int    time_on_connect;   
 
 };
 

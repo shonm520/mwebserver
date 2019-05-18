@@ -6,10 +6,12 @@
 #include "http_request.h"
 #include "str.h"
 #include "dict.h"
+#include "config.h"
 
 
 #define CRLF "\r\n"
 
+extern config server_config;
 
 static const char *Status_Table[512];
 
@@ -139,6 +141,9 @@ void response_append_connection(request *r)
     else  {
         connection = SSSTR("Connection: close" CRLF);
     }
+    if ((time(NULL) - r->conn->time_on_connect) > server_config.connect_time_limit)   {    //if the connection take up a lot of time, tell the client close
+        connection = SSSTR("Connection: close" CRLF);
+    }
     ring_buffer_push_data(buf, connection.str, connection.len);
 }
 
@@ -149,7 +154,7 @@ void response_append_timeout(request *r)
     ring_buffer* buf = r->conn->ring_buffer_write;
     if (r->par.keep_alive)  {
         char temp[64] = {0};
-        sprintf(temp, "Keep-Alive: timeout=%d, max=1" CRLF, Keep_Alive);    //it may not work, depends on client's behaviour
+        sprintf(temp, "Keep-Alive: timeout=%d, max=1" CRLF, server_config.timeout_keep_alive);    //it may not work, depends on client's behaviour
         ring_buffer_push_data(buf, temp, strlen(temp));
     }
 }

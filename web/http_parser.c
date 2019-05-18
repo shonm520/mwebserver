@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "http_parser.h"
-#include "mevent/config.h"
 
 #define AGAIN (1)
 #define OK    (0)

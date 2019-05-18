@@ -14,7 +14,7 @@ static void onMessage(connection *conn)
 {
     int len = 0;
     char* msg = ring_buffer_get_msg(conn->ring_buffer_read, &len);
-    debug_msg("msg is %s\n", msg);
+    debug_msg("fd: %d, port: %d msg is %s\n", conn->connfd, conn->port, msg);
     http_request(conn->handler);  
 }
 

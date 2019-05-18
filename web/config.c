@@ -10,7 +10,10 @@ int config_parse(char* file, config* conf)
 {
     conf->port = 2019;
     conf->work_thread = 0;
-    
+
+    conf->timeout_keep_alive = 30;
+    conf->connect_time_limit = 30;
+
     conf->rootdir = "./www";
     DIR *dirp = NULL;
     if (conf->rootdir != NULL &&

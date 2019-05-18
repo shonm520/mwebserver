@@ -209,7 +209,7 @@ static void event_writable_callback(int fd, event* ev, void* arg)
 
 static void connection_passive_close(connection* conn)
 {
-    printf("connection_passive_close!!! %d  \n", conn->connfd);
+    printf("connection_passive_close!!! %d, life time is %d \n", conn->connfd, time(NULL) - conn->time_on_connect);
     connection_disconnect(conn);
 }
 
