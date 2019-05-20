@@ -4,7 +4,7 @@ Tiny but high-performance HTTP Server, based on my [mu_event](https://github.com
 # Usage
 ## Build
 ```
-git clone https://github.com/shonm520/mwebserver
+git clone https://github.com/shonm520/mwebserver.git
 ./build.sh
 ```
 ## Run
