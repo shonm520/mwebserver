@@ -18,6 +18,14 @@ e.g ./mwebserver 2019 4
 
 常见的压力测试工具有ab，wrk，webbench。HTTP/1.1的长连接已经很普及，wrk默认支持长连接，webbench不支持长连接测试，ab需要加上-k选项， 否则ab的压力测试会默认采用HTTP/1.0，即每一个请求建立一个TCP连接。
 
+测试环境：
+
+- 测试环境为本地virtualbox虚拟机，配置2核 Intel(R) Core(TM) i5-7400 CPU @ 3.00GHz
+
+- nginx的worker_processes配置为4
+
+- 标准1KB静态页面测试
+
 
 使用ab进行短连接测试，与nginx的对比
 
