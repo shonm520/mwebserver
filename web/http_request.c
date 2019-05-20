@@ -5,15 +5,19 @@
 #include <fcntl.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <sys/sendfile.h>
 
+#include "mevent/connection.h"
+#include "mevent/ring_buffer.h"
+#include "mevent/config.h"
 #include "http_request.h"
 #include "http_parser.h"
-#include "mevent/config.h"
 #include "config.h"
-#include "mevent/ring_buffer.h"
 #include "dict.h"
 #include "str.h"
-#include "mevent/connection.h"
+#include "http_response.h"
+
+#include "misc/logger.h"
 
 
 #define OK    (0)
@@ -39,10 +43,10 @@ static int response_assemble_err_buffer( request *r, int status_code);
 
 typedef int (*header_handle_method)(request *, void*);
 
-typedef struct header_func_t{
-  ssstr hd;
-  header_handle_method func;
-  size_t offset;
+typedef struct header_func_t {
+    ssstr hd;
+    header_handle_method func;
+    size_t offset;
 } header_func;
 
 
@@ -118,6 +122,8 @@ int http_request(request* req)
     }
 
     http_request_handle_reset(req);        //reset connect
+
+    return 0;
 }
 
 
@@ -396,7 +402,8 @@ int response_handle_send_file( request *r)
 }
 
 
-int response_assemble_err_buffer(request *r, int status_code) {
+int response_assemble_err_buffer(request *r, int status_code)
+{
     r->req_handler = NULL;
     r->par.err_req = true;
     r->status_code = status_code;

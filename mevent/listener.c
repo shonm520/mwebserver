@@ -5,15 +5,16 @@
 #include <fcntl.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h> 
 #include <stdio.h>
 #include <time.h>
 #include "listener.h"
 #include "servermanager.h"
 #include "event.h"
-#include "logger.h"
 #include "connection.h"
 #include "event_loop.h"
 
+#include "misc/logger.h"
 
 
 extern event_loop *g_loops[];
@@ -81,6 +82,9 @@ static void event_accept_callback(int listenfd, event* ev, void* arg)
     else  {
         loop = g_loops[i++];
     }
+
+    int tcp_nodelay = 1;
+    setsockopt(connfd, IPPROTO_TCP, TCP_NODELAY,(const void *) &tcp_nodelay, sizeof(int));                               
 	
 	connection *conn = connection_create(loop, connfd, manager->msg_callback);      //后面的参数是指有消息时的用户回调
 	if (conn == NULL)  {
@@ -90,9 +94,10 @@ static void event_accept_callback(int listenfd, event* ev, void* arg)
     conn->time_on_connect = time(NULL);
     conn->disconnected_cb = default_disconnected_callback;
 	
-	if (manager->new_connection_callback)
+	if (manager->new_connection_callback) {
         conn->connected_cb = manager->new_connection_callback;
         connection_established(conn);
+    }
 
     connection_start(conn, loop);
 }
@@ -163,5 +168,6 @@ listener* listener_create(server_manager* manager, inet_address ls_addr,
         event_add_io(manager->loop->epoll_fd, lev);
     }
 	
+    return ls;
 }
 

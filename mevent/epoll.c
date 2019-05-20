@@ -6,11 +6,10 @@
 #include <stdio.h>
 
 #include "epoll.h"
-#include "logger.h"
 #include "event.h"
 #include "config.h"
 
-
+#include "misc/logger.h"
 
 int epoller_create()
 {

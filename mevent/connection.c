@@ -1,5 +1,7 @@
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -9,10 +11,11 @@
 #include <sys/uio.h>
 #include "connection.h"
 #include "event_loop.h"
-#include "logger.h"
 #include "event.h"
 #include "config.h"
 #include "ring_buffer.h"
+
+#include "misc/logger.h"
 
 
 static void connection_passive_close(connection* conn);
@@ -68,7 +71,7 @@ static int read_buffer(int fd, connection* conn)       //使用了readv但是好
     char* start = ring_buffer_readable_start(conn->ring_buffer_read);
     int available_bytes = ring_buffer_available_bytes(conn->ring_buffer_read);
     vec[0].iov_base = start;
-    vec[0].iov_len = available_bytes;
+    vec[0].iov_len = available_bytes;        //一开始时为0，并不读到ring_buffer中去
     vec[1].iov_base = extrabuf2;
     vec[1].iov_len = nread2;
 
@@ -133,7 +136,7 @@ static void event_writable_callback(int fd, event* ev, void* arg)
 
 static void connection_passive_close(connection* conn)
 {
-    printf("connection_passive_close!!! %d, life time is %d \n", conn->connfd, time(NULL) - conn->time_on_connect);
+    //printf("connection_passive_close!!! %d, life time is %d \n", conn->connfd, (int)time(NULL) - conn->time_on_connect);
     connection_disconnect(conn);
 }
 
@@ -144,8 +147,8 @@ void connection_established(connection* conn)
 }
 
 void connection_active_close(connection* conn)
-{
-    printf("active close %d\n", conn->connfd);
+{   
+    //printf("active close %d\n", conn->connfd);
     connection_disconnect(conn);
 }
 

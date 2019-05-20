@@ -1,1 +1,1 @@
-gcc -o websvr mevent/*.c web/*.c -lpthread -g -I ./ -I ./mevent
+gcc -o websvr mevent/*.c web/*.c example/*.c -lpthread -g -I ./ -I ./mevent  

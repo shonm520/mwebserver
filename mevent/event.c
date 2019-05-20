@@ -5,8 +5,9 @@
 #include "event.h"
 #include "servermanager.h"
 #include "event_loop.h"
-#include "logger.h"
 #include "epoll.h"
+
+#include "misc/logger.h"
 
 static void event_error_handler(event* ev)
 {

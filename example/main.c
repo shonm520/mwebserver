@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "web/http_server.h"
+#include "misc/logger.h"
 
 
 #define DEFAULT_PORT  2019   //默认端口

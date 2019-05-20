@@ -74,19 +74,19 @@ typedef enum {
 #undef XX
 } http_status;
 
-extern void mime_dict_init();
-extern void mime_dict_free();
+void mime_dict_init();
+void mime_dict_free();
 
-extern void status_table_init();
+void status_table_init();
 
 
-extern void response_append_status_line(request *r);
-extern void response_append_date(request *r);
-extern void response_append_server( request *r);
-extern void response_append_content_type( request *r);
-extern void response_append_content_length( request *r);
-extern void response_append_connection( request *r);
-extern void response_append_timeout( request *r);
-extern void response_append_crlf( request *r);
+void response_append_status_line(request *r);
+void response_append_date(request *r);
+void response_append_server( request *r);
+void response_append_content_type( request *r);
+void response_append_content_length( request *r);
+void response_append_connection( request *r);
+void response_append_timeout( request *r);
+void response_append_crlf( request *r);
 
 

@@ -17,6 +17,8 @@ struct request_t {
 
 int http_request(request*);  
 
+void header_handler_dict_init();
+
 void http_request_handle_init(connection* conn);
 
 int request_reset(request *r);

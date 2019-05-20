@@ -83,7 +83,7 @@ void response_append_date(request *r)
 
     time_t now = time(NULL);
     struct tm *tm = localtime(&now);
-    size_t len = strftime(temp, sizeof(temp), "Date: %a, %d %b %Y %H:%M:%S GMT" CRLF, tm);
+    strftime(temp, sizeof(temp), "Date: %a, %d %b %Y %H:%M:%S GMT" CRLF, tm);
     ring_buffer_push_data(buf, temp, strlen(temp));
 }
 
@@ -125,7 +125,7 @@ void response_append_content_length(request *r)
     ring_buffer* buf = r->conn->ring_buffer_write;
     int len = r->resource_size;
     
-    if (len > 0)  {
+    if (len >= 0)  {
         char temp[64] = {0};
         sprintf(temp, "Content-Length: %d" CRLF, len);
         ring_buffer_push_data(buf, temp, strlen(temp));

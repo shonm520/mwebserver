@@ -5,12 +5,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "logger.h"
 #include "tcpclient.h"
 #include "config.h"
 #include "event_loop.h"
 #include "event.h"
 #include "connection.h"
+
+#include "misc/logger.h"
 
 
 tcpclient* tcpclient_create(const char* ip, short port)

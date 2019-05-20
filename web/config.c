@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include "config.h"
 
+#include "misc/logger.h"
+
 
 int config_parse(char* file, config* conf)
 {
@@ -22,8 +24,8 @@ int config_parse(char* file, config* conf)
         conf->rootdir_fd = open(conf->rootdir, O_RDONLY);
         
         return 0;
-    }  else  {
-        perror(conf->rootdir);
+    } else {
+        debug_sys("rootdir is invalide, ", conf->rootdir);
         return -1;
     }
 
