@@ -6,7 +6,6 @@
 
 #include "misc/logger.h"
 
-
 event_loop* event_loop_create()
 {
     event_loop* loop = (event_loop*)mu_malloc(sizeof(event_loop));

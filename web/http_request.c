@@ -102,6 +102,8 @@ int http_request(request* req)
     if (!req)  {
         return -1;
     }
+    http_request_handle_reset(req);        //reset connect if has
+
     int status = OK;
     int len = ring_buffer_readable_bytes(req->conn->ring_buffer_read);
     do  {
@@ -121,8 +123,6 @@ int http_request(request* req)
         connection_active_close(req->conn);
     }
 
-    http_request_handle_reset(req);        //reset connect
-
     return 0;
 }
 
@@ -134,12 +134,7 @@ void http_request_handle_init(connection* conn)
     conn->handler = req;
     req->conn = conn;
 
-    parse_archive_init(&req->par);
-    req->resource_fd = -1;
-    req->status_code = 200;
-
-    req->req_handler = request_handle_request_line;
-    req->res_handler = response_handle_send_line_and_header;
+    http_request_handle_reset(req);
 }
 
 

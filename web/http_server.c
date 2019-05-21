@@ -17,8 +17,8 @@ config server_config;
 
 static void onMessage(connection *conn)           //in worker thread if has, and run after onConnection
 {
-    int len = 0;
-    char* msg = ring_buffer_get_msg(conn->ring_buffer_read, &len);
+    //int len = 0;
+    //char* msg = ring_buffer_get_msg(conn->ring_buffer_read, &len);
     //debug_msg("fd: %d, port: %d msg is %s\n", conn->connfd, conn->port, msg);
 
     http_request(conn->handler);  
@@ -28,7 +28,7 @@ static void onDisconnected(connection* conn)
 {
     //debug_msg("onDisconnected : %d\n", conn->connfd);
     request* req = (request*)conn->handler;
-    //free(req);
+    free(req);
 }
 
 static void onConnection(connection* conn)       //in main thread

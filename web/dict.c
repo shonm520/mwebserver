@@ -22,7 +22,8 @@ static unsigned int ssstr_hash_sdbm(const ssstr *key)
 
 #define LOTOS_HASH(key) (ssstr_hash_sdbm(key) & DICT_MASK_SIZE)
 
-void dict_put(dict_t *dict, const ssstr *key, void *val) {
+void dict_put(dict_t *dict, const ssstr *key, void *val)
+{
   unsigned int hash = LOTOS_HASH(key);
   dict_node_t *p = dict->table[hash];
   dict_node_t *q = (dict_node_t*)malloc(sizeof(dict_node_t));
@@ -36,7 +37,7 @@ void dict_put(dict_t *dict, const ssstr *key, void *val) {
 
 /* cause we can put NULL as a valid value, so found_flag is necessary */
 void *dict_get(dict_t *dict, const ssstr *key, bool *found_flag)
- {
+{
   if (found_flag != NULL)
     *found_flag = false;
   unsigned int hash = LOTOS_HASH(key);
@@ -55,7 +56,7 @@ void *dict_get(dict_t *dict, const ssstr *key, bool *found_flag)
 }
 
 void dict_free(dict_t *d)
- {
+{
   if (d == NULL)
     return;
   int i;
