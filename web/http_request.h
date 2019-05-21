@@ -25,4 +25,3 @@ int request_reset(request *r);
 
 int response_handle(request *r);
 
-void http_request_handle_reset(request* r);

@@ -27,7 +27,8 @@
 
 extern config server_config;
 
-
+static void http_request_handle_reset(request* r);
+static void http_request_handle_unint(request* r);
 
 
 static int request_handle_request_line(request *r);
@@ -123,6 +124,8 @@ int http_request(request* req)
         connection_active_close(req->conn);
     }
 
+    http_request_handle_unint(req);        //should not free req here when persistent connection
+
     return 0;
 }
 
@@ -138,12 +141,18 @@ void http_request_handle_init(connection* conn)
 }
 
 
-void http_request_handle_reset(request* req)
+void http_request_handle_unint(request* req)
 {
-    parse_archive_init(&req->par);
     if (req->resource_fd > 0)  {
         close(req->resource_fd);
     }
+}
+
+
+void http_request_handle_reset(request* req)
+{
+    parse_archive_init(&req->par);
+    
     req->resource_fd = -1;
     req->status_code = 200;
 
