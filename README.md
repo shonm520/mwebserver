@@ -9,9 +9,9 @@ git clone https://github.com/shonm520/mwebserver.git
 ```
 ## Run
 ```
-./mwebserver port thread_num
+./mwebserver -p port -w thread_num
 
-e.g ./mwebserver 2019 4
+e.g ./mwebserver -p 2019 -w 4
 ```
 
 # Benchmark
